@@ -356,9 +356,87 @@ int confirmSurrounding()
 * 
 */
 
+/*
+* //컴퓨터가 현재 놓을 수 있는 위치 전부를 출력한다.
+void checkWhereCurrentUserCanPutBlock()
+{
+	int originalArrx, originalArry;
+	int randomComputerNum = 1; // computerRandomPlace[arry][arrx]의 값. 해당 아닌 값들은 모두 0으로 초기화되어있음.
+
+	originalArrx = arrx;
+	originalArry = arry;
+
+	for (arry = 0; arry < SCREEN; arry++)
+	{
+		for (arrx = 0; arrx < SCREEN; arrx++)
+		{
+			if (confirmSurrounding() == 1)
+			{
+				screen[0][arry][arrx] = 3;
+				computerRandomPlace[arry][arrx] = randomComputerNum;
+				++randomComputerNum;
+			}
+		}
+	}
+
+	for (arry = 0; arry < SCREEN; arry++)
+	{
+		for (arrx = 0; arrx < SCREEN; arrx++)
+		{
+			if (computerRandomPlace[arry][arrx] == calComputerRandPlace(randomComputerNum))
+			{
+				screen[0][arry][arrx] = 3;
+			}
+		}
+	}
+
+	viewInGameScreen();
+
+	for (arry = 0; arry < SCREEN; arry++)
+	{
+		for (arrx = 0; arrx < SCREEN; arrx++)
+		{
+			if (confirmSurrounding() == 1)
+			{
+				screen[0][arry][arrx] = 0;
+				computerRandomPlace[arry][arrx] = 0;
+			}
+		}
+	}
+
+	arrx = originalArrx;
+	arry = originalArry;
+}
+
+*/
+
+
+
+
+
+
+
+
+
 int main()
 {
-	
+	char test[8][8][2] = { "" };
+
+	for (int a = 0; a < 8; a++)
+	{
+		for (int b = 0; b < 8; b++)
+		{
+			test[a][b][0] = 'a';
+			test[a][b][1] = 'b';
+			for (int c = 0; c < 2; c++)
+			{
+				printf("%c", test[a][b][c]);
+			}
+			printf("	");
+		}
+		printf("\n");
+
+	}
 
 	return 0;
 }

@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <Windows.h>
 #include <conio.h>
+#include <time.h>
+#include <stdlib.h>
 
 #define SCREEN 8
 
@@ -31,7 +33,8 @@ int screen[5][SCREEN][SCREEN] = { 0 }; //0: 기본세팅(하얀 별) 1: 플레이어(파랑색
 int clickEnter = 0; //0 :false 1:True
 int turn = 1; // 플레이어 : 1	컴퓨터 :2
 int xyInPlaying;
-int test[8][8] = { 0 };
+int isFirstTimeTocheckWhereCurrentUserCanPutBlock = 0; //블럭 놓을 수 있는 곳 위치 확인하는게 처음인가?
+char computerRandomPlace[8][8] = {0};
 
 //파랑색 9 - 플레이어
 //빨간색 12 - 컴퓨터
@@ -50,23 +53,28 @@ int confirmIfThereIsBlock();
 int confirmGameOver();
 void viewGameResult();
 void checkWhereCurrentUserCanPutBlock();
+int calComputerRandPlace(int randomComputerNum);
 
 
 int main()
 {
 	//화면 그리기
 	int textColor = 7;
+
+	srand((unsigned int)time(NULL));
+
+	
 	SetDiagonalCnt();
 	SetStartScreen(textColor);
 	
 	while (GameOver ==0)
 	{	
-		checkWhereCurrentUserCanPutBlock();
-		break;
+		
 		if (confirmGameOver() == 1)
 		{
 			viewGameResult();
 		}
+
 		if (clickEnter == 1)
 		{
 			if (confirmSurrounding() == 1) //자신이 Enter한 부근에 놓을 수 있을경우 
@@ -82,7 +90,7 @@ int main()
 				}
 
 				changeBlockColor();
-				viewInGameScreen();
+				viewInGameScreen(); //clickEnter 이함수에서 0으로 바뀜.
 				
 				xyInPlaying = 0;
 				if (turn == 2)
@@ -93,17 +101,29 @@ int main()
 				{
 					turn = changeOppositeNumOfCurrentTurn();
 				}
+				isFirstTimeTocheckWhereCurrentUserCanPutBlock = 0;
 			}
 			else
 			{
-				gotoxy(arrx, arry);
-			}
-			
+				gotoxy();
+			}			
 		}
+
+		if (confirmGameOver() == 1)
+		{
+			viewGameResult();
+		}
+
+		if (turn ==2 && isFirstTimeTocheckWhereCurrentUserCanPutBlock == 0)
+		{
+			//Sleep(3000);
+			checkWhereCurrentUserCanPutBlock();
+			++isFirstTimeTocheckWhereCurrentUserCanPutBlock;
+		}
+		
 		checkKey();
 		gotoxy();
-		
-		//Sleep(250); //1000 = 1초 지연
+
 	}
 
 	return 0;
@@ -114,13 +134,13 @@ void matchXY()
 	switch (x)
 	{
 	case 1:
-		arrx = 0;
+		arrx = 0; //+1 <-- (arrx * 2)+1
 		break;
 	case 4:
-		arrx = 1;
+		arrx = 1; //+3
 		break;
 	case 7:
-		arrx = 2;
+		arrx = 2; //+5
 		break;
 	case 10:
 		arrx = 3;
@@ -269,7 +289,7 @@ void viewInGameScreen()
 		{
 			if (screen[0][row][col] == 3)
 			{
-				changeTextColor(6);
+				changeTextColor(10);
 				printf(" * ");
 				changeTextColor(7);
 				continue;
@@ -301,20 +321,12 @@ void gotoxy()
 	COORD pos;
 	pos.X = x;
 	pos.Y = y;
-	if (clickEnter == 0 && xyInPlaying ==0)
+	if (clickEnter == 0 && xyInPlaying == 0)
 	{
 		x = 10;
 		y = 6;
 		++xyInPlaying;
 	}
-	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), pos);
-}
-
-void copygotoxy(int X, int Y)
-{
-	COORD pos;
-	pos.X = X;
-	pos.Y = Y;
 	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), pos);
 }
 
@@ -416,7 +428,7 @@ int confirmSurrounding()
 		//대각선 검사
 		if (i == 1) //왼쪽 위 방향
 		{
-			if (screen[0][arry - 1][arrx - 1] != turn)
+			if (screen[0][arry - 1][arrx - 1] == changeOppositeNumOfCurrentTurn())
 			{
 				for (int a = 1; a <= screen[i][arry][arrx]; a++)
 				{
@@ -433,7 +445,7 @@ int confirmSurrounding()
 		}
 		else if (i == 2) //오른쪽 위 방향
 		{
-			if (screen[0][arry - 1][arrx + 1] != turn)
+			if (screen[0][arry - 1][arrx + 1] == changeOppositeNumOfCurrentTurn())
 			{
 				for (int a = 1; a <= screen[i][arry][arrx]; a++)
 				{
@@ -450,7 +462,7 @@ int confirmSurrounding()
 		}
 		else if (i == 3) //왼쪽 아래 방향
 		{
-			if (screen[0][arry + 1][arrx - 1] != turn)
+			if (screen[0][arry + 1][arrx - 1] == changeOppositeNumOfCurrentTurn())
 			{
 				for (int a = 1; a <= screen[i][arry][arrx]; a++)
 				{
@@ -467,7 +479,7 @@ int confirmSurrounding()
 		}
 		else if (i == 4) //오른쪽 아래 방향
 		{
-			if (screen[0][arry + 1][arrx + 1] != turn)
+			if (screen[0][arry + 1][arrx + 1] == changeOppositeNumOfCurrentTurn())
 			{
 				for (int a = 1; a <= screen[i][arry][arrx]; a++)
 				{
@@ -488,7 +500,7 @@ int confirmSurrounding()
 
 
 	// 행 검사 - 위
-	if (screen[0][arry - 1][arrx] != turn && screen[0][arry - 1][arrx] != 0)
+	if (screen[0][arry - 1][arrx] == changeOppositeNumOfCurrentTurn())
 	{
 		for (int a = arry - 1; a >= 0; a--) //위 방향으로 검사
 		{
@@ -505,7 +517,7 @@ int confirmSurrounding()
 
 
 	// 행 검사 - 아래
-	if (screen[0][arry + 1][arrx] != turn && screen[0][arry + 1][arrx] != 0)
+	if (screen[0][arry + 1][arrx] == changeOppositeNumOfCurrentTurn())
 	{
 		for (int a = arry + 1; a < 8; a++) //아래방향으로 검사
 		{
@@ -521,7 +533,7 @@ int confirmSurrounding()
 	}
 
 	//열 검사 - 왼쪽
-	if (screen[0][arry][arrx - 1] != turn && screen[0][arry][arrx - 1] != 0) //자기가 놓은 곳 바로 왼쪽 칸.
+	if (screen[0][arry][arrx - 1] == changeOppositeNumOfCurrentTurn()) //자기가 놓은 곳 바로 왼쪽 칸.
 	{
 		for (int a = arrx - 1; a >= 0; a--) // <-- 방향으로 감.
 		{
@@ -538,7 +550,7 @@ int confirmSurrounding()
 
 
 	//열 검사 - 오른쪽
-	if (screen[0][arry][arrx + 1] != turn && screen[0][arry][arrx + 1] != 0) // --> 방향으로 검사
+	if (screen[0][arry][arrx + 1] == changeOppositeNumOfCurrentTurn()) // --> 방향으로 검사
 	{
 		for (int a = arrx + 1; a < 8; a++)
 		{
@@ -570,7 +582,7 @@ void changeBlockColor() //Enter누른 부분으로부터 왼위, 오위, 왼아래, 오아래 대각
 		//대각선 검사
 		if (i == 1) //왼쪽 위 방향
 		{
-			if (screen[0][arry - 1][arrx - 1] != turn)
+			if (screen[0][arry - 1][arrx - 1] == changeOppositeNumOfCurrentTurn())
 			{
 				for (int a = 1; a <= screen[i][arry][arrx]; a++)
 				{
@@ -591,7 +603,7 @@ void changeBlockColor() //Enter누른 부분으로부터 왼위, 오위, 왼아래, 오아래 대각
 		}
 		else if (i == 2) //오른쪽 위 방향
 		{
-			if (screen[0][arry - 1][arrx + 1] != turn)
+			if (screen[0][arry - 1][arrx + 1] == changeOppositeNumOfCurrentTurn())
 			{
 				for (int a = 1; a <= screen[i][arry][arrx]; a++)
 				{
@@ -612,7 +624,7 @@ void changeBlockColor() //Enter누른 부분으로부터 왼위, 오위, 왼아래, 오아래 대각
 		}
 		else if (i == 3) //왼쪽 아래 방향
 		{
-			if (screen[0][arry + 1][arrx - 1] != turn)
+			if (screen[0][arry + 1][arrx - 1] == changeOppositeNumOfCurrentTurn())
 			{
 				for (int a = 1; a <= screen[i][arry][arrx]; a++)
 				{
@@ -633,7 +645,7 @@ void changeBlockColor() //Enter누른 부분으로부터 왼위, 오위, 왼아래, 오아래 대각
 		}
 		else if (i == 4) //오른쪽 아래 방향
 		{
-			if (screen[0][arry + 1][arrx + 1] != turn)
+			if (screen[0][arry + 1][arrx + 1] == changeOppositeNumOfCurrentTurn())
 			{
 				for (int a = 1; a <= screen[i][arry][arrx]; a++)
 				{
@@ -659,7 +671,7 @@ void changeBlockColor() //Enter누른 부분으로부터 왼위, 오위, 왼아래, 오아래 대각
 	
 
 	// 행 검사 - 위
-	if (screen[0][arry - 1][arrx] != turn && screen[0][arry - 1][arrx] != 0)
+	if (screen[0][arry - 1][arrx] == changeOppositeNumOfCurrentTurn())
 	{
 		for (int a = arry - 1; a >= 0; a--) //위 방향으로 검사
 		{
@@ -680,7 +692,7 @@ void changeBlockColor() //Enter누른 부분으로부터 왼위, 오위, 왼아래, 오아래 대각
 
 
 	// 행 검사 - 아래
-	if (screen[0][arry + 1][arrx] != turn && screen[0][arry + 1][arrx] != 0)
+	if (screen[0][arry + 1][arrx] == changeOppositeNumOfCurrentTurn())
 	{
 		for (int a = arry + 1; a < 8; a++) //아래방향으로 검사
 		{
@@ -700,7 +712,7 @@ void changeBlockColor() //Enter누른 부분으로부터 왼위, 오위, 왼아래, 오아래 대각
 	}
 
 	//열 검사 - 왼쪽
-	if (screen[0][arry][arrx - 1] != turn && screen[0][arry][arrx - 1] !=0) //자기가 놓은 곳 바로 왼쪽 칸.
+	if (screen[0][arry][arrx - 1] == changeOppositeNumOfCurrentTurn()) //자기가 놓은 곳 바로 왼쪽 칸.
 	{
 		for (int a = arrx - 1; a >= 0; a--) // <-- 방향으로 감.
 		{
@@ -721,7 +733,7 @@ void changeBlockColor() //Enter누른 부분으로부터 왼위, 오위, 왼아래, 오아래 대각
 
 
 	//열 검사 - 오른쪽
-	if (screen[0][arry][arrx + 1] != turn && screen[0][arry][arrx + 1] !=0) // --> 방향으로 검사
+	if (screen[0][arry][arrx + 1] == changeOppositeNumOfCurrentTurn()) // --> 방향으로 검사
 	{
 		for (int a = arrx + 1; a < 8; a++)
 		{
@@ -837,45 +849,90 @@ void viewGameResult()
 	viewInGameScreen();
 }
 
-//현재 턴의 유저가 블럭을 놓을 수 있는 <위치> 검사
+//컴퓨터가 블럭을 놓을 수 있는 <위치> 표시 및 출력
 void checkWhereCurrentUserCanPutBlock()
 {
 	int originalArrx, originalArry;
+	int randomComputerNum = 1; // computerRandomPlace[arry][arrx]의 값. 해당 아닌 값들은 모두 0으로 초기화되어있음. 
+	int tmpArrx;
+	int tmpArry;
 
 	originalArrx = arrx;
 	originalArry = arry;
-
+	
 	//(3,6) , (3,7) 좌표가 현재 문제있음.
 	//(3,5)
 	//(3,6),(3,7)만 따로따로 검사했을경우 문제없음.
 	//근데 (3,5)껴서 연속적으로 (3,7)까지 검사할경우 문제 발생
 	//해당 현재값이 0이어서 검사안하는 것 같은데.. 이따 와서 보자 이게 맞는듯.
 	
-	for (arry = 3; arry < 4; arry++)
+	for (arry = 0; arry < SCREEN; arry++)
 	{
-		for (arrx = 5; arrx < 8; arrx++)
+		for (arrx = 0; arrx < SCREEN; arrx++)
 		{
 			if (confirmSurrounding() == 1)
 			{
-				screen[0][arry][arrx] = 3;
-				test[arry][arrx] = 1;
+				//screen[0][arry][arrx] = 3;
+				computerRandomPlace[arry][arrx] = randomComputerNum;
+				++randomComputerNum;
 			}
 		}
 	}
+	
+	randomComputerNum = calComputerRandPlace(randomComputerNum - 1);
 
-	//arrx = originalArrx;
-	//arry = originalArry;
-
-	viewInGameScreen();
-
-	printf("\n\n\n\n");
-	for (int i = 0; i < 8; i++)
+	for (arry = 0; arry < SCREEN; arry++)
 	{
-		for (int a = 0; a < 8; a++)
+		for (arrx = 0; arrx < SCREEN; arrx++)
 		{
-			printf(" %d ", test[i][a]);
+			//마지막에 ++randomComputerNum이기 때문에 -1해서 계산해야함.
+			if (computerRandomPlace[arry][arrx] == randomComputerNum)
+			{
+				screen[0][arry][arrx] = 3;
+				tmpArrx = arrx;
+				tmpArry = arry;
+			}
 		}
-		printf("\n");
 	}
+	
+	viewInGameScreen(); //랜덤으로 나온 컴퓨터의 위치를 초록색으로 출력
+
+	screen[0][tmpArry][tmpArrx] = 2;
+	arrx = tmpArrx;
+	arry = tmpArry;
+
+	x = arrx + (arrx * 2 + 1); //컴퓨터가 블럭을 바꾸는 곳에 커서를 둔다.
+	y = arry * 2;
+
+	changeBlockColor();
+	
+	gotoxy();
+	Sleep(3000); //3초후
+	viewInGameScreen(); //이후 해당 위치 컴퓨터 색깔로 변하게 하기
+
+	for (arry = 0; arry < SCREEN; arry++)
+	{
+		for (arrx = 0; arrx < SCREEN; arrx++)
+		{
+			/*if (computerRandomPlace[arry][arrx] == randomComputerNum)
+			{
+				screen[0][arry][arrx] = 0;			
+			}*/
+			computerRandomPlace[arry][arrx] = 0;
+		}
+	}
+
+	arrx = originalArrx;
+	arry = originalArry;
+	xyInPlaying = 0;
+	turn = 1;
 }
+
+int calComputerRandPlace(int randomComputerNum)
+{
+	int randNum = 0;
+	randNum = rand() % randomComputerNum + 1; //1~해당 값까지
+	return randNum;
+}
+
 
