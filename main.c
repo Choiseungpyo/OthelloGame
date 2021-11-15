@@ -32,9 +32,10 @@ int screen[5][SCREEN][SCREEN] = { 0 }; //0: 기본세팅(하얀 별) 1: 플레이어(파랑색
 
 int clickEnter = 0; //0 :false 1:True
 int turn = 1; // 플레이어 : 1	컴퓨터 :2
-int xyInPlaying;
+int resetMiddlePlace;
 int isFirstTimeTocheckWhereCurrentUserCanPutBlock = 0; //블럭 놓을 수 있는 곳 위치 확인하는게 처음인가?
 char computerRandomPlace[8][8] = {0};
+int enableMoveNextTurn = 0;
 
 //파랑색 9 - 플레이어
 //빨간색 12 - 컴퓨터
@@ -54,25 +55,26 @@ int confirmGameOver();
 void viewGameResult();
 void checkWhereCurrentUserCanPutBlock();
 int calComputerRandPlace(int randomComputerNum);
+void moveNextTurn();
+void setErrorSetting();
+void clearScreen();
 
 
 int main()
 {
-	//화면 그리기
 	int textColor = 7;
 
 	srand((unsigned int)time(NULL));
 
-	
 	SetDiagonalCnt();
 	SetStartScreen(textColor);
 	
 	while (GameOver ==0)
 	{	
-		
 		if (confirmGameOver() == 1)
 		{
 			viewGameResult();
+			return 0;
 		}
 
 		if (clickEnter == 1)
@@ -80,27 +82,15 @@ int main()
 			if (confirmSurrounding() == 1) //자신이 Enter한 부근에 놓을 수 있을경우 
 			{
 				//Enter 입력후 해당 자리에 블럭을 놓을 수 있는지 검사 후 현재위치 색깔 바꾸기
-				if (turn == 1)
-				{
-					screen[0][arry][arrx] = 1;
-				}
-				else if (turn == 2)
-				{
-					screen[0][arry][arrx] = 2;
-				}
+				screen[0][arry][arrx] = 1;
 
 				changeBlockColor();
 				viewInGameScreen(); //clickEnter 이함수에서 0으로 바뀜.
 				
-				xyInPlaying = 0;
-				if (turn == 2)
-				{
-					turn = changeOppositeNumOfCurrentTurn();
-				}
-				else if (turn == 1)
-				{
-					turn = changeOppositeNumOfCurrentTurn();
-				}
+				resetMiddlePlace = 0;
+				
+				turn = changeOppositeNumOfCurrentTurn(); // 결과 : 플레이어 턴에서 컴퓨터 턴으로 넘어가게됨. 
+				
 				isFirstTimeTocheckWhereCurrentUserCanPutBlock = 0;
 			}
 			else
@@ -109,21 +99,24 @@ int main()
 			}			
 		}
 
+		moveNextTurn(); // 플레이어가 놓을 수 있는 곳이 없을 경우 다음턴으로 넘긴다.
+
 		if (confirmGameOver() == 1)
 		{
 			viewGameResult();
+			return 0;
 		}
 
-		if (turn ==2 && isFirstTimeTocheckWhereCurrentUserCanPutBlock == 0)
+		if (turn ==2 && isFirstTimeTocheckWhereCurrentUserCanPutBlock == 0 || enableMoveNextTurn ==1 && turn == 2)
 		{
 			//Sleep(3000);
 			checkWhereCurrentUserCanPutBlock();
 			++isFirstTimeTocheckWhereCurrentUserCanPutBlock;
+			enableMoveNextTurn = 0;
 		}
 		
 		checkKey();
 		gotoxy();
-
 	}
 
 	return 0;
@@ -201,6 +194,7 @@ void SetStartScreen(int textColor)
 	screen[0][3][4] = 2;
 	screen[0][4][3] = 2;
 	screen[0][4][4] = 1;
+	//setErrorSetting();
 
 	for (int row = 0; row < 8; row++)
 	{
@@ -287,29 +281,34 @@ void viewInGameScreen()
 	{
 		for (int col = 0; col < 8; col++)
 		{
-			if (screen[0][row][col] == 3)
+			if (screen[0][row][col] == -1) //clearScreen
 			{
-				changeTextColor(10);
+				//changeTextColor(10); //초록색
+				printf("   ");
+				//changeTextColor(7);
+				continue;
+			}
+			else if (screen[0][row][col] == 3) //컴퓨터가 놓을 위치 
+			{
+				changeTextColor(10); //초록색
 				printf(" * ");
 				changeTextColor(7);
 				continue;
 			}
-			else if (screen[0][row][col] == 1)
+			else if (screen[0][row][col] == 1) //플레이어
 			{
-				changeTextColor(9);
+				changeTextColor(9); //파랑색
 				printf(" * ");
 				changeTextColor(7);
 				continue;
 			}
-			else if (screen[0][row][col] == 2)
+			else if (screen[0][row][col] == 2) //컴퓨터
 			{
-				changeTextColor(12);
+				changeTextColor(12); //빨강색
 				printf(" * ");
 				changeTextColor(7);
 				continue;
 			}
-			
-
 			printf(" * ");
 		}
 		printf("\n\n");
@@ -321,11 +320,17 @@ void gotoxy()
 	COORD pos;
 	pos.X = x;
 	pos.Y = y;
-	if (clickEnter == 0 && xyInPlaying == 0)
+	
+	if (clickEnter == 0 && resetMiddlePlace == 0) 
 	{
 		x = 10;
 		y = 6;
-		++xyInPlaying;
+		++resetMiddlePlace;
+	}
+	if (confirmGameOver() == 1 || GameOver == 1)
+	{
+		x = 0;
+		y = 0;
 	}
 	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), pos);
 }
@@ -410,7 +415,7 @@ void SetDiagonalCnt() //대각선 방향 입력시 해당 [행,열]의 대각선 개수 설정
 	}
 }
 
-// Enter 입력후 해당 자리에 블럭을 놓을수 있는지 검사.
+// Enter 입력후 -> 해당 자리에 블럭을 놓을수 있는지 검사.
 int confirmSurrounding()
 {
 	if (confirmIfThereIsBlock() == 1) //현재 자리에 이미 이전에 놓인 블럭이 있으므로 현재위치에 블럭을 놓을 수 없다. 
@@ -498,7 +503,6 @@ int confirmSurrounding()
 
 
 
-
 	// 행 검사 - 위
 	if (screen[0][arry - 1][arrx] == changeOppositeNumOfCurrentTurn())
 	{
@@ -569,7 +573,7 @@ int confirmSurrounding()
 	return 0; //오류났을경우
 }
 
-void changeBlockColor() //Enter누른 부분으로부터 왼위, 오위, 왼아래, 오아래 대각선 긋기. 테스트용
+void changeBlockColor() //블럭의 색깔을 바꾼다. screen[][][]의 값만 변경/ 출력은 viewInGameScreen에서만
 {
 
 	for (int i = 1; i <= 4; i++)
@@ -753,7 +757,7 @@ void changeBlockColor() //Enter누른 부분으로부터 왼위, 오위, 왼아래, 오아래 대각
 	}
 }
 
-int changeOppositeNumOfCurrentTurn() // 현재 턴의 반대 번호로 바꿔준다.
+int changeOppositeNumOfCurrentTurn() // 플레이어 -> 컴퓨터 또는 컴퓨터 -> 플레이어 턴으로 바꿔준다.
 {
 	if (turn == 1)
 	{
@@ -767,10 +771,9 @@ int changeOppositeNumOfCurrentTurn() // 현재 턴의 반대 번호로 바꿔준다.
 	{
 		return -1; //오류인 경우
 	}
-
 }
 
-int confirmIfThereIsBlock()
+int confirmIfThereIsBlock() //해당 위치에 블럭이 있는지 없는지 검사
 {
 	if (screen[0][arry][arrx] == 1 || screen[0][arry][arrx] == 2)
 	{
@@ -785,6 +788,7 @@ int confirmIfThereIsBlock()
 int confirmGameOver()
 {
 	int spaceFilledCnt=0;
+
 	for (int row = 0; row < SCREEN; row++)
 	{
 		for (int col = 0; col < SCREEN; col++)
@@ -847,6 +851,26 @@ void viewGameResult()
 	Sleep(5000); //5초 기다린 후 출력
 
 	viewInGameScreen();
+
+	Sleep(3000); //5초 기다린 후 출력
+
+	clearScreen();
+	viewInGameScreen();
+
+	gotoxy();
+	printf("플레이어 : %d 개 \n", playerBlockCnt);
+	printf("컴퓨터   : %d 개 \n", computerBlockCnt);
+
+	if (playerBlockCnt > computerBlockCnt)
+	{
+		printf("플레이어 승리");
+	}
+	else
+	{
+		printf("컴퓨터 승리");
+	}
+	Sleep(5000);
+	
 }
 
 //컴퓨터가 블럭을 놓을 수 있는 <위치> 표시 및 출력
@@ -859,12 +883,6 @@ void checkWhereCurrentUserCanPutBlock()
 
 	originalArrx = arrx;
 	originalArry = arry;
-	
-	//(3,6) , (3,7) 좌표가 현재 문제있음.
-	//(3,5)
-	//(3,6),(3,7)만 따로따로 검사했을경우 문제없음.
-	//근데 (3,5)껴서 연속적으로 (3,7)까지 검사할경우 문제 발생
-	//해당 현재값이 0이어서 검사안하는 것 같은데.. 이따 와서 보자 이게 맞는듯.
 	
 	for (arry = 0; arry < SCREEN; arry++)
 	{
@@ -924,7 +942,8 @@ void checkWhereCurrentUserCanPutBlock()
 
 	arrx = originalArrx;
 	arry = originalArry;
-	xyInPlaying = 0;
+
+	resetMiddlePlace = 0;
 	turn = 1;
 }
 
@@ -936,3 +955,70 @@ int calComputerRandPlace(int randomComputerNum)
 }
 
 
+// 해당 차례의 유저가 둘 곳이 없으면 다음 유저에게 턴을 넘긴다.
+void moveNextTurn()
+{
+	int originalArrx, originalArry;
+	int originalx, originaly;
+	int placeCurrentUserCannotPut_cnt = 0;
+
+	originalx = x;
+	originaly = y;
+	originalArrx = arrx;
+	originalArry = arry;
+
+	for (int row = 0; row < SCREEN; row++)
+	{
+		for (int col = 0; col < SCREEN; col++)
+		{
+			if (screen[0][row][col] == 0)
+			{
+				arrx = col;
+				arry = row;
+				if (confirmSurrounding() == 1) //현재유저가 해당 위치에 놓을 수 있을 경우
+				{ 
+					++placeCurrentUserCannotPut_cnt; 				
+				}
+			}
+		}
+	}
+
+	if (placeCurrentUserCannotPut_cnt ==  0)
+	{
+		turn = changeOppositeNumOfCurrentTurn();
+		enableMoveNextTurn = 1;
+	}
+
+	arrx = originalArrx;
+	arry = originalArry;
+	x = originalx;
+	y = originaly;
+}
+
+void setErrorSetting()
+{
+	for (int row = 0; row < SCREEN; row++)
+	{
+		for (int col = 0; col < SCREEN; col++)
+		{
+			screen[0][row][col] = 1;
+		}
+	}
+
+	screen[0][1][6] = 2;
+	screen[0][6][1] = 2;
+	screen[0][7][0] = 0;
+	screen[0][0][7] = 0;
+
+}
+
+void clearScreen()
+{
+	for (int row = 0; row < 8; row++)
+	{
+		for (int col = 0; col < 8; col++)
+		{
+			screen[0][row][col] = -1;
+		}
+	}
+}

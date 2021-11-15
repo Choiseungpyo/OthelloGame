@@ -18,9 +18,6 @@
     <ClCompile Include="main.c">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="tetris.c">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
     <ClCompile Include="cross.c">
       <Filter>소스 파일</Filter>
     </ClCompile>
